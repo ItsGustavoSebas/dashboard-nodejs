@@ -1,0 +1,10 @@
+# Ignora los módulos locales, se instalarán dentro del contenedor
+node_modules
+
+# Ignora el archivo de secretos
+.env
+
+# Ignora logs y otros archivos
+npm-debug.log
+.DS_Store
+dist
