@@ -31,7 +31,8 @@ dotenv.config();
 // CONFIGURACIÓN
 // =====================================================
 
-const PORT = process.env.PORT || 5000;
+const PORT = parseInt(process.env.PORT, 10) || 8080; // usar 8080 como fallback por Cloud Run
+const HOST = '0.0.0.0';
 const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret_in_production';
 
 // =====================================================
@@ -227,9 +228,17 @@ async function startServer() {
     });
 
     // 6. Iniciar servidor HTTP
-    await new Promise((resolve) => {
-      httpServer.listen(PORT, resolve);
+    await new Promise((resolve, reject) => {
+      httpServer.listen(PORT, HOST, (err) => {
+        if (err) {
+          console.error('❌ Error starting httpServer.listen:', err);
+          return reject(err);
+        }
+        console.log(`\n✅ Server listening on ${HOST}:${PORT}`);
+        return resolve();
+      });
     });
+
 
     console.log(`\n✅ Server ready at http://localhost:${PORT}`);
     console.log(`📊 GraphQL endpoint: http://localhost:${PORT}/graphql`);
