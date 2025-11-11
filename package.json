@@ -8,7 +8,8 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "verify:db": "node scripts/runMigrations.js",
-    "seed": "node scripts/seedTestData.js"
+    "seed": "node scripts/seedTestData.js",
+    "build": "tsc"
   },
   "keywords": [
     "nodejs",
