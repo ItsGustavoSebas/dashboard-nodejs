@@ -6,9 +6,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js",
     "verify:db": "node scripts/runMigrations.js",
-    "build": "tsc",
     "seed": "node scripts/seedTestData.js"
   },
   "keywords": [
