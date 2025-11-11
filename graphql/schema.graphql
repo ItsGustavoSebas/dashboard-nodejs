@@ -1,0 +1,484 @@
+# =====================================================
+# ANALYTICS MICROSERVICE - GRAPHQL SCHEMA
+# =====================================================
+
+# Scalar personalizado para objetos JSON
+scalar JSON
+scalar DateTime
+
+# =====================================================
+# TYPES - KPIs
+# =====================================================
+
+"""
+KPIs de un proyecto calculados por el ETL
+"""
+type ProjectKPIs {
+  id: ID!
+  project_id_source: Int!
+  project_name: String
+
+  # KPIs principales
+  health_score: Int
+  progress_percentage: Float
+  velocity: Int
+  cycle_time_avg: Float
+  lead_time_avg: Float
+  blocker_count: Int
+
+  # Distribución de carga (JSON)
+  workload_distribution: JSON
+
+  # Metadatos
+  last_updated: DateTime
+  created_at: DateTime
+}
+
+"""
+KPIs específicos de un sprint
+"""
+type SprintKPIs {
+  id: ID!
+  sprint_id_source: Int!
+  project_id_source: Int!
+  sprint_name: String
+
+  # KPIs del sprint
+  velocity: Int
+  tasks_completed: Int
+  story_points_completed: Int
+  tasks_total: Int
+  completion_percentage: Float
+
+  # Tiempos
+  cycle_time_avg: Float
+  lead_time_avg: Float
+
+  # Estado
+  sprint_status: String
+  start_date: DateTime
+  end_date: DateTime
+
+  # Metadatos
+  last_updated: DateTime
+  created_at: DateTime
+}
+
+"""
+Resumen de múltiples KPIs para comparaciones
+"""
+type KPISummary {
+  total_projects: Int!
+  average_health_score: Float
+  total_blockers: Int
+  projects_at_risk: Int
+  projects: [ProjectKPIs]
+}
+
+# =====================================================
+# TYPES - Dashboards & Widgets
+# =====================================================
+
+"""
+Dashboard personalizado por usuario
+"""
+type Dashboard {
+  id: ID!
+  user_id: String!
+  name: String!
+  description: String
+
+  # Layout (configuración de react-grid-layout)
+  layout: JSON
+
+  # Configuraciones
+  is_default: Boolean
+  is_public: Boolean
+
+  # Widgets del dashboard
+  widgets: [Widget]
+
+  # Metadatos
+  created_at: DateTime
+  updated_at: DateTime
+}
+
+"""
+Widget individual de un dashboard
+"""
+type Widget {
+  id: ID!
+  dashboard_id: ID!
+
+  # Tipo de KPI
+  kpi_key: String!
+
+  # Tipo de componente visual
+  component_type: WidgetComponentType!
+
+  # Configuraciones
+  config: JSON
+  position: JSON
+  filters: JSON
+
+  # Metadatos
+  created_at: DateTime
+  updated_at: DateTime
+}
+
+"""
+Tipos de componentes visuales disponibles
+"""
+enum WidgetComponentType {
+  GAUGE
+  LINE_CHART
+  BAR_CHART
+  PIE_CHART
+  NUMBER
+  TABLE
+  PROGRESS_BAR
+  AREA_CHART
+  RADAR_CHART
+  HEATMAP
+}
+
+# =====================================================
+# TYPES - AI Analysis
+# =====================================================
+
+"""
+Análisis inteligente generado por IA (Google Gemini)
+"""
+type AIAnalysis {
+  # Resumen ejecutivo
+  summary: String!
+
+  # Recomendaciones accionables
+  recommendations: [String]!
+
+  # Predicción de finalización
+  prediction: String
+
+  # KPIs en el momento del análisis
+  kpis_snapshot: JSON
+
+  # Metadata
+  generated_at: DateTime
+  cached: Boolean
+}
+
+# =====================================================
+# TYPES - Logs y Metadata
+# =====================================================
+
+"""
+Log de ejecución del ETL
+"""
+type ETLLog {
+  id: ID!
+  status: ETLStatus!
+  projects_processed: Int
+  sprints_processed: Int
+  duration_ms: Int
+  error_message: String
+  started_at: DateTime
+  finished_at: DateTime
+}
+
+"""
+Estados posibles del ETL
+"""
+enum ETLStatus {
+  SUCCESS
+  FAILED
+  RUNNING
+}
+
+# =====================================================
+# INPUTS
+# =====================================================
+
+"""
+Input para crear un dashboard
+"""
+input CreateDashboardInput {
+  name: String!
+  description: String
+  layout: JSON
+  is_default: Boolean
+}
+
+"""
+Input para actualizar un dashboard
+"""
+input UpdateDashboardInput {
+  name: String
+  description: String
+  layout: JSON
+  is_default: Boolean
+  is_public: Boolean
+}
+
+"""
+Input para crear un widget
+"""
+input CreateWidgetInput {
+  dashboard_id: ID!
+  kpi_key: String!
+  component_type: WidgetComponentType!
+  config: JSON
+  position: JSON
+  filters: JSON
+}
+
+"""
+Input para actualizar un widget
+"""
+input UpdateWidgetInput {
+  kpi_key: String
+  component_type: WidgetComponentType
+  config: JSON
+  position: JSON
+  filters: JSON
+}
+
+"""
+Filtros para consultar KPIs
+"""
+input KPIFilters {
+  project_ids: [Int!]
+  health_score_min: Int
+  health_score_max: Int
+  has_blockers: Boolean
+  date_from: DateTime
+  date_to: DateTime
+}
+
+# =====================================================
+# QUERIES
+# =====================================================
+
+type Query {
+  # ===== KPIs =====
+
+  """
+  Obtener KPIs de un proyecto específico
+  """
+  getProjectKPIs(projectId: Int!): ProjectKPIs
+
+  """
+  Obtener KPIs de múltiples proyectos
+  """
+  getMultipleProjectKPIs(projectIds: [Int!]!): [ProjectKPIs]
+
+  """
+  Obtener todos los KPIs con filtros opcionales
+  """
+  getAllProjectKPIs(filters: KPIFilters, limit: Int, offset: Int): [ProjectKPIs]
+
+  """
+  Obtener resumen de KPIs
+  """
+  getKPISummary(filters: KPIFilters): KPISummary
+
+  """
+  Obtener KPIs de un sprint específico
+  """
+  getSprintKPIs(sprintId: Int!): SprintKPIs
+
+  """
+  Obtener KPIs de todos los sprints de un proyecto
+  """
+  getProjectSprintKPIs(projectId: Int!): [SprintKPIs]
+
+  # ===== Dashboards =====
+
+  """
+  Obtener todos los dashboards del usuario actual
+  """
+  getMyDashboards: [Dashboard]
+
+  """
+  Obtener un dashboard específico por ID
+  """
+  getDashboard(id: ID!): Dashboard
+
+  """
+  Obtener el dashboard por defecto del usuario
+  """
+  getDefaultDashboard: Dashboard
+
+  # ===== AI Analysis =====
+
+  """
+  Obtener análisis inteligente de un proyecto
+  Usa Google Gemini para generar insights y recomendaciones
+  """
+  getIntelligentAnalysis(projectId: Int!, forceRefresh: Boolean): AIAnalysis
+
+  """
+  Obtener análisis comparativo de múltiples proyectos
+  """
+  getComparativeAnalysis(projectIds: [Int!]!): AIAnalysis
+
+  # ===== Logs y Metadata =====
+
+  """
+  Obtener logs recientes del ETL
+  """
+  getETLLogs(limit: Int, status: ETLStatus): [ETLLog]
+
+  """
+  Obtener el último log del ETL
+  """
+  getLatestETLLog: ETLLog
+
+  # ===== Health Check =====
+
+  """
+  Verificar el estado del microservicio
+  """
+  healthCheck: HealthCheckResponse
+}
+
+"""
+Respuesta del health check
+"""
+type HealthCheckResponse {
+  status: String!
+  timestamp: DateTime!
+  services: ServiceStatus!
+}
+
+"""
+Estado de los servicios
+"""
+type ServiceStatus {
+  supabase: Boolean!
+  mysql: Boolean!
+  gemini_ai: Boolean!
+  etl: String!
+}
+
+# =====================================================
+# MUTATIONS
+# =====================================================
+
+type Mutation {
+  # ===== Dashboards =====
+
+  """
+  Crear un nuevo dashboard
+  """
+  createDashboard(input: CreateDashboardInput!): Dashboard
+
+  """
+  Actualizar un dashboard existente
+  """
+  updateDashboard(id: ID!, input: UpdateDashboardInput!): Dashboard
+
+  """
+  Eliminar un dashboard
+  """
+  deleteDashboard(id: ID!): Boolean
+
+  """
+  Duplicar un dashboard
+  """
+  duplicateDashboard(id: ID!, newName: String!): Dashboard
+
+  # ===== Widgets =====
+
+  """
+  Agregar un widget a un dashboard
+  """
+  addWidget(input: CreateWidgetInput!): Widget
+
+  """
+  Actualizar la configuración de un widget
+  """
+  updateWidget(id: ID!, input: UpdateWidgetInput!): Widget
+
+  """
+  Eliminar un widget
+  """
+  deleteWidget(id: ID!): Boolean
+
+  """
+  Actualizar múltiples widgets (útil para reorganizar layout)
+  """
+  updateMultipleWidgets(widgets: [WidgetUpdateBatch!]!): [Widget]
+
+  # ===== ETL =====
+
+  """
+  Forzar la ejecución del ETL manualmente
+  Normalmente se ejecuta automáticamente cada hora
+  """
+  triggerETL: ETLLog
+
+  # ===== AI Analysis =====
+
+  """
+  Invalidar el cache de análisis de IA para un proyecto
+  """
+  invalidateAICache(projectId: Int!): Boolean
+}
+
+"""
+Input para actualización batch de widgets
+"""
+input WidgetUpdateBatch {
+  id: ID!
+  position: JSON
+  config: JSON
+}
+
+# =====================================================
+# SUBSCRIPTIONS
+# =====================================================
+
+type Subscription {
+  """
+  Notificación cuando los KPIs de un proyecto se actualizan
+  Se dispara después de cada ejecución del ETL
+  """
+  onProjectKPIsUpdated(projectId: Int!): ProjectKPIs
+
+  """
+  Notificación cuando los KPIs de cualquier proyecto se actualizan
+  """
+  onAnyProjectKPIsUpdated: ProjectKPIs
+
+  """
+  Notificación cuando el ETL inicia o termina
+  """
+  onETLStatusChange: ETLLog
+
+  """
+  Notificación cuando un dashboard se actualiza
+  """
+  onDashboardUpdated(dashboardId: ID!): Dashboard
+}
+
+# =====================================================
+# DIRECTIVES (Opcionales)
+# =====================================================
+
+"""
+Indica que un campo requiere autenticación
+"""
+directive @auth on FIELD_DEFINITION
+
+"""
+Indica que un campo está en cache
+"""
+directive @cacheControl(
+  maxAge: Int
+  scope: CacheControlScope
+) on FIELD_DEFINITION | OBJECT
+
+enum CacheControlScope {
+  PUBLIC
+  PRIVATE
+}

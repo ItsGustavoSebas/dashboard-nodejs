@@ -1,0 +1,3 @@
+{
+  "query": "{ getAllProjectKPIs { project_id_source project_name health_score } }"
+}

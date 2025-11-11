@@ -1,28 +1,57 @@
 {
-  "name": "nodejs-supabase",
+  "name": "analytics-microservice",
   "version": "1.0.0",
-  "description": "Node.js API with Supabase integration",
+  "description": "Analytics Microservice - Dashboard de KPIs con IA (GraphQL API)",
   "type": "module",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "verify:db": "node scripts/runMigrations.js",
+    "seed": "node scripts/seedTestData.js"
   },
   "keywords": [
     "nodejs",
-    "supabase"
+    "supabase",
+    "graphql",
+    "analytics",
+    "kpis",
+    "dashboard",
+    "microservice",
+    "ai"
   ],
   "author": "Manthan Ankolekar",
   "license": "MIT",
   "dependencies": {
+    "@apollo/server": "^4.12.2",
+    "@google/generative-ai": "^0.21.0",
+    "@graphql-tools/schema": "^10.0.27",
     "@supabase/supabase-js": "^2.49.1",
+    "bcryptjs": "^3.0.3",
+    "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1"
+    "graphql": "^16.12.0",
+    "graphql-subscriptions": "^2.0.0",
+    "graphql-tag": "^2.12.6",
+    "graphql-ws": "^5.16.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.5",
+    "node-cron": "^3.0.3",
+    "ws": "^8.18.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9"
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.10.0",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
+    "nodemon": "^3.1.9",
+    "prisma": "^6.19.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
   }
 }
