@@ -15,7 +15,7 @@ RUN npm install
 COPY . .
 
 # Ejecuta el script de compilación (tsc)
-RUN npm run build
+CMD [ "node", "index.js" ]
 
 # --- Etapa 2: Producción (Final) ---
 # Usa una imagen 'slim' más ligera para producción
@@ -29,10 +29,15 @@ COPY package*.json ./
 # Instala SOLO las dependencias de producción
 RUN npm ci --only=production
 
-# Copia cualquier otra cosa que necesites en producción (ej. carpetas 'config', 'migrations')
-# Descomenta y ajusta si es necesario.
-# COPY --from=builder /app/config ./config
-# COPY --from=builder /app/migrations ./migrations
+# Copia el código fuente necesario para la ejecución
+COPY index.js .
+COPY config ./config
+COPY controllers ./controllers
+COPY graphql ./graphql
+COPY jobs ./jobs
+COPY migrations ./migrations
+COPY routes ./routes
+COPY services ./services
 
 # Tu app debe escuchar en el puerto que Google le da.
 # Tu código debe usar process.env.PORT

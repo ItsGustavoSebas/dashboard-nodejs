@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: analytics-microservice
+  labels:
+    app: analytics-microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: analytics-microservice
+  template:
+    metadata:
+      labels:
+        app: analytics-microservice
+    spec:
+      containers:
+      - name: analytics-microservice
+        image: analytics-microservice:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: analytics-config
+        env:
+        - name: PORT
+          value: "8080"
+        # Secrets should be handled via K8s Secrets, but for now we can put placeholders or rely on env
+        - name: GOOGLE_API_KEY
+          value: "AIzaSyBkQ3YTtBH0Nueu0VKA9_B4aBE_HwnQNIA"
+        - name: SUPABASE_URL
+          value: "https://ubxbiooamkamoseayfno.supabase.co"
+        - name: SUPABASE_KEY
+          value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVieGJpb29hbWthbW9zZWF5Zm5vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwMTA5OTYsImV4cCI6MjA4MTU4Njk5Nn0.aD8ona0W9FyeI2cWbTmsQgU7MCrNuSpzAWGdoIEJshQ"
+        - name: MYSQL_HOST
+            value: "ballast.proxy.rlwy.net"
+        - name: MYSQL_USER
+            value: "root"
+        - name: MYSQL_PASSWORD
+            value: "AhLrnelVbmoNFwAxLkrZRcHvSExvsSUQ"
+        - name: MYSQL_DATABASE
+            value: "railway"
+        - name: MYSQL_PORT
+            value: "56602"
