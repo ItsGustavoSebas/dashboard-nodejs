@@ -16,7 +16,7 @@ import bodyParser from 'body-parser';
 
 // Importar configuraciones y resolvers
 import supabase from './config/supabaseClient.js';
-import { testMySQLConnection } from './config/mysqlClient.js';
+import { testPGConnection } from './config/pgClient.js';
 import resolvers from './graphql/resolvers.js';
 import { startETLCron } from './jobs/etl.js';
 
@@ -186,7 +186,7 @@ async function startServer() {
     // 4. Health check endpoint
     app.get('/health', async (req, res) => {
       try {
-        const mysqlOk = await testMySQLConnection();
+        const pgOk = await testPGConnection();
 
         res.json({
           status: 'OK',
@@ -194,7 +194,7 @@ async function startServer() {
           services: {
             apollo: true,
             supabase: true,
-            mysql: mysqlOk,
+            pg: pgOk,
             websocket: wsServer.clients.size > 0 ? 'CONNECTED' : 'NO_CLIENTS',
           },
         });

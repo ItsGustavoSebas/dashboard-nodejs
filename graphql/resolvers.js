@@ -1,5 +1,5 @@
 import supabase from '../config/supabaseClient.js';
-import { testMySQLConnection } from '../config/mysqlClient.js';
+import { testPGConnection } from '../config/pgClient.js';
 import { generateAIAnalysis } from '../config/geminiClient.js';
 import { runETL, getETLCronStatus } from '../jobs/etl.js';
 import { pubsub, EVENTS } from './pubsub.js';
@@ -413,7 +413,7 @@ Proporciona:
 
     async healthCheck() {
       const supabaseOk = true; // Si llegamos aquí, Supabase está OK
-      const mysqlOk = await testMySQLConnection();
+      const pgOk = await testPGConnection();
       const geminiOk = true; // Si hay API key configurada
       const etlStatus = getETLCronStatus();
 
@@ -422,7 +422,7 @@ Proporciona:
         timestamp: new Date().toISOString(),
         services: {
           supabase: supabaseOk,
-          mysql: mysqlOk,
+          pg: pgOk,
           gemini_ai: geminiOk,
           etl: etlStatus.running ? 'RUNNING' : 'STOPPED',
         },

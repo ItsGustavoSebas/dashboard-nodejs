@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import getMySQLPool from '../config/mysqlClient.js';
+import getPGPool from '../config/pgClient.js';
 import supabase from '../config/supabaseClient.js';
 import { pubsub } from '../graphql/pubsub.js';
 
@@ -109,8 +109,8 @@ function calculateOnTimePercentage(proyecto, progressPercentage) {
  * Obtener IDs de columnas según su nombre (para identificar estados)
  */
 async function getColumnIdsByName(connection, projectId, stateNames) {
-  const [columns] = await connection.query(
-    `SELECT id, nombre FROM columna_kanban WHERE proyecto_id = ? AND nombre IN (?)`,
+  const { rows: columns } = await connection.query(
+    `SELECT id, nombre FROM columna_kanban WHERE proyecto_id = $1 AND nombre = ANY($2)`,
     [projectId, stateNames]
   );
 
@@ -124,7 +124,7 @@ async function calculateProjectKPIs(connection, proyecto) {
   const projectId = proyecto.id;
 
   // 1. Obtener todas las tareas del proyecto
-  const [tareas] = await connection.query(
+  const { rows: tareas } = await connection.query(
     `SELECT
       t.id,
       t.columna_id,
@@ -134,7 +134,7 @@ async function calculateProjectKPIs(connection, proyecto) {
       c.nombre as columna_nombre
     FROM tarea t
     LEFT JOIN columna_kanban c ON t.columna_id = c.id
-    WHERE t.proyecto_id = ?`,
+    WHERE t.proyecto_id = $1`,
     [projectId]
   );
 
@@ -161,9 +161,9 @@ async function calculateProjectKPIs(connection, proyecto) {
   const progressPercentage = (tareasCompletadas.length / tareas.length) * 100;
 
   // 4. Calcular velocity (puntos completados en el último sprint cerrado)
-  const [ultimoSprintCerrado] = await connection.query(
+  const { rows: ultimoSprintCerrado } = await connection.query(
     `SELECT id FROM sprint
-     WHERE proyecto_id = ? AND estado = 'COMPLETADO'
+     WHERE proyecto_id = $1 AND estado = 'COMPLETADO'
      ORDER BY fecha_fin DESC LIMIT 1`,
     [projectId]
   );
@@ -171,10 +171,10 @@ async function calculateProjectKPIs(connection, proyecto) {
   let velocity = 0;
   if (ultimoSprintCerrado.length > 0) {
     const sprintId = ultimoSprintCerrado[0].id;
-    const [tareasSprintCompletadas] = await connection.query(
+    const { rows: tareasSprintCompletadas } = await connection.query(
       `SELECT SUM(puntos) as total_puntos
        FROM tarea
-       WHERE sprint_id = ? AND columna_id IN (?)`,
+       WHERE sprint_id = $1 AND columna_id = ANY($2)`,
       [sprintId, doneColumnIds.length > 0 ? doneColumnIds : [0]]
     );
     velocity = tareasSprintCompletadas[0].total_puntos || 0;
@@ -190,19 +190,19 @@ async function calculateProjectKPIs(connection, proyecto) {
 
     for (const tarea of tareasCompletadas) {
       // Buscar cuándo entró a "En Progreso"
-      const [entradaProgreso] = await connection.query(
+      const { rows: entradaProgreso } = await connection.query(
         `SELECT MIN(cambiado_en) as fecha_inicio
          FROM historial_estado_tarea
-         WHERE tarea_id = ? AND a_columna_id IN (?)`,
+         WHERE tarea_id = $1 AND a_columna_id = ANY($2)`,
         [tarea.id, inProgressColumnIds]
       );
 
       // Buscar cuándo entró a "Hecho"
-      const [entradaDone] = await connection.query(
+      const { rows: entradaDone } = await connection.query(
         `SELECT MIN(cambiado_en) as fecha_fin
          FROM historial_estado_tarea
-         WHERE tarea_id = ? AND a_columna_id IN (?)
-         AND cambiado_en > ?`,
+         WHERE tarea_id = $1 AND a_columna_id = ANY($2)
+         AND cambiado_en > $3`,
         [tarea.id, doneColumnIds, entradaProgreso[0]?.fecha_inicio || tarea.creado_en]
       );
 
@@ -226,10 +226,10 @@ async function calculateProjectKPIs(connection, proyecto) {
 
     for (const tarea of tareasCompletadas) {
       // Buscar cuándo entró a "Hecho"
-      const [entradaDone] = await connection.query(
+      const { rows: entradaDone } = await connection.query(
         `SELECT MIN(cambiado_en) as fecha_fin
          FROM historial_estado_tarea
-         WHERE tarea_id = ? AND a_columna_id IN (?)`,
+         WHERE tarea_id = $1 AND a_columna_id = ANY($2)`,
         [tarea.id, doneColumnIds]
       );
 
@@ -252,14 +252,14 @@ async function calculateProjectKPIs(connection, proyecto) {
   ).length;
 
   // 8. Calcular workload_distribution
-  const [tareasAsignadas] = await connection.query(
+  const { rows: tareasAsignadas } = await connection.query(
     `SELECT
       t.asignado_a,
       u.name as usuario_nombre,
       COUNT(*) as cantidad_tareas
     FROM tarea t
     LEFT JOIN usuario u ON t.asignado_a = u.id
-    WHERE t.proyecto_id = ? AND t.asignado_a IS NOT NULL
+    WHERE t.proyecto_id = $1 AND t.asignado_a IS NOT NULL
     GROUP BY t.asignado_a, u.name`,
     [projectId]
   );
@@ -293,11 +293,11 @@ async function calculateSprintKPIs(connection, sprint) {
   const sprintId = sprint.id;
 
   // Obtener tareas del sprint
-  const [tareas] = await connection.query(
+  const { rows: tareas } = await connection.query(
     `SELECT t.*, c.nombre as columna_nombre
      FROM tarea t
      LEFT JOIN columna_kanban c ON t.columna_id = c.id
-     WHERE t.sprint_id = ?`,
+     WHERE t.sprint_id = $1`,
     [sprintId]
   );
 
@@ -374,13 +374,13 @@ export async function runETL() {
       pubsub.publish('ETL_STATUS_CHANGE', { onETLStatusChange: log });
     }
 
-    // 1. Conectar a MySQL
-    const pool = getMySQLPool();
-    const connection = await pool.getConnection();
-    console.log('✅ Connected to MySQL');
+    // 1. Conectar a PostgreSQL
+    const pool = getPGPool();
+    const connection = await pool.connect();
+    console.log('✅ Connected to PostgreSQL');
 
     // 2. Obtener todos los proyectos
-    const [proyectos] = await connection.query(
+    const { rows: proyectos } = await connection.query(
       `SELECT id, nombre, fecha_inicio, fecha_fin, estado FROM proyecto`
     );
     console.log(`📊 Found ${proyectos.length} projects to process`);
@@ -419,9 +419,9 @@ export async function runETL() {
         projectsProcessed++;
 
         // 4. Procesar sprints del proyecto
-        const [sprints] = await connection.query(
+        const { rows: sprints } = await connection.query(
           `SELECT id, proyecto_id, nombre, fecha_inicio, fecha_fin, estado
-           FROM sprint WHERE proyecto_id = ?`,
+           FROM sprint WHERE proyecto_id = $1`,
           [proyecto.id]
         );
 
