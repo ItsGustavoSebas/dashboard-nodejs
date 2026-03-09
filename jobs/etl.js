@@ -465,7 +465,7 @@ export async function runETL() {
         projects_processed: projectsProcessed,
         sprints_processed: sprintsProcessed,
         duration_ms: duration,
-        finished_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(), // Change "finished_at" to "completed_at" to match schema
       };
 
       await updateETLLog(logId, finalLog);
@@ -473,16 +473,18 @@ export async function runETL() {
       // Publicar evento de finalización
       if (pubsub) {
         pubsub.publish('ETL_STATUS_CHANGE', {
-          onETLStatusChange: { ...finalLog, id: logId },
+          onETLStatusChange: { id: logId, ...finalLog },
         });
       }
+      
+      return { id: logId, ...finalLog }; // Return the actual format that the GraphQL mutation expects: ETLLog
     }
 
     return {
       success: true,
-      projectsProcessed,
-      sprintsProcessed,
-      duration,
+      projects_processed: projectsProcessed,
+      sprints_processed: sprintsProcessed,
+      duration_ms: duration,
     };
   } catch (error) {
     console.error('❌ ETL Process Failed:', error);
@@ -563,7 +565,9 @@ export function getETLCronStatus() {
   return {
     running: cronJob !== null,
     schedule: CRON_SCHEDULE,
-    nextExecution: cronJob?.nextDate()?.toString() || null,
+    nextExecution: (cronJob && typeof cronJob.nextDate === 'function') 
+                     ? cronJob.nextDate()?.toString() 
+                     : null,
   };
 }
 
