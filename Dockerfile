@@ -27,7 +27,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instala SOLO las dependencias de producción
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Copia el código fuente necesario para la ejecución
 COPY index.js .
