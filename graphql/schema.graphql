@@ -182,7 +182,7 @@ type ETLLog {
   duration_ms: Int
   error_message: String
   started_at: DateTime
-  finished_at: DateTime
+  completed_at: DateTime
 }
 
 """
@@ -355,7 +355,7 @@ Estado de los servicios
 """
 type ServiceStatus {
   supabase: Boolean!
-  mysql: Boolean!
+  pg: Boolean!
   gemini_ai: Boolean!
   etl: String!
 }
